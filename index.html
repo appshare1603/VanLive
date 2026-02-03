@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VanLive Dashboard (by DavisOnTheRoad)</title>
+    <title>VanLive Dashboard</title>
     <!-- Tailwind CSS für das Design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & Babel für die Live-Kompilierung im Browser -->
@@ -139,6 +139,25 @@
                             </div>
                         </div>
 
+                        {/* Radio Integration (Antenne 1 Webplayer) */}
+                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
+                            <div className="flex justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="radio" className="text-orange-400" />
+                                    <span className="text-xs font-bold">Antenne 1</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Entertainment</span>
+                            </div>
+                            <div className="relative flex-grow bg-slate-950 rounded-xl overflow-hidden border border-slate-800 h-48">
+                                <iframe 
+                                    src="https://www.antenne1.de/webradio/player" 
+                                    className="w-full h-full border-none"
+                                    title="Antenne 1 Radio"
+                                    allow="autoplay; encrypted-media"
+                                ></iframe>
+                            </div>
+                        </div>
+
                         {/* Außenkamera Simulation */}
                         <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
                             <div className="flex justify-between mb-4">
@@ -161,9 +180,6 @@
                                     CAM_01_REAR
                                 </div>
                             </div>
-                            <button className="mt-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[10px] font-bold uppercase transition-colors">
-                                Stream öffnen
-                            </button>
                         </div>
 
                         {/* Leveling Card mit Visualisierung */}
