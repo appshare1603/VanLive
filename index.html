@@ -14,6 +14,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { background-color: #020617; }
+        .horizon-line { transition: transform 0.3s ease-out; }
     </style>
 </head>
 <body>
@@ -30,6 +31,28 @@
                 }
             }, [name]);
             return <i data-lucide={name} className={className}></i>;
+        };
+
+        // Visualisierung für den Neigungssensor
+        const LevelIndicator = ({ pitch, roll }) => {
+            return (
+                <div className="relative w-24 h-24 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center overflow-hidden mx-auto mb-4">
+                    {/* Skala Kreise */}
+                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-75"></div>
+                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-50"></div>
+                    
+                    {/* Horizont Linie basierend auf Pitch und Roll */}
+                    <div 
+                        className="horizon-line absolute w-32 h-0.5 bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                        style={{ 
+                            transform: `rotate(${roll}deg) translateY(${pitch * 2}px)` 
+                        }}
+                    ></div>
+                    
+                    {/* Zentrum Markierung */}
+                    <div className="absolute w-2 h-2 bg-white rounded-full z-10"></div>
+                </div>
+            );
         };
 
         const VanDashboard = () => {
@@ -53,8 +76,8 @@
                     batteryStart: (12.2 + Math.random() * 0.4).toFixed(1),
                     waterLevel: Math.floor(35 + Math.random() * 40),
                     gasValue: Math.floor(Math.random() * 450),
-                    pitch: (Math.random() * 4 - 2).toFixed(1),
-                    roll: (Math.random() * 6 - 3).toFixed(1),
+                    pitch: (Math.random() * 10 - 5).toFixed(1),
+                    roll: (Math.random() * 10 - 5).toFixed(1),
                     weather: {
                         condition: Math.random() > 0.7 ? "Regen" : (Math.random() > 0.4 ? "Bewölkt" : "Sonnig"),
                         temp: (5 + Math.random() * 10).toFixed(0),
@@ -73,7 +96,7 @@
             }, []);
 
             const isGasAlarm = parseInt(data.gasValue) > 350;
-            const isUnlevel = Math.abs(data.pitch) > 1.5 || Math.abs(data.roll) > 1.5;
+            const isUnlevel = Math.abs(parseFloat(data.pitch)) > 1.5 || Math.abs(parseFloat(data.roll)) > 1.5;
 
             return (
                 <div className="min-h-screen text-slate-100 p-4 md:p-8">
@@ -109,32 +132,45 @@
                             </div>
                         </div>
 
-                        {/* Leveling Card */}
-                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isUnlevel ? 'border-purple-500' : 'border-slate-800'}`}>
+                        {/* Leveling Card mit Visualisierung */}
+                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isUnlevel ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border-slate-800'}`}>
                             <div className="flex justify-between mb-4">
                                 <Icon name="compass" className="text-purple-400" />
                                 <span className="text-[10px] text-slate-500 font-bold uppercase">Ausrichtung</span>
                             </div>
-                            <div className="flex gap-4">
-                                <div><p className="text-xs text-slate-500">Pitch</p><p className="text-2xl font-bold">{data.pitch}°</p></div>
-                                <div><p className="text-xs text-slate-500">Roll</p><p className="text-2xl font-bold">{data.roll}°</p></div>
+                            
+                            <LevelIndicator pitch={parseFloat(data.pitch)} roll={parseFloat(data.roll)} />
+                            
+                            <div className="flex justify-around text-center">
+                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Pitch</p><p className="text-xl font-bold">{data.pitch}°</p></div>
+                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Roll</p><p className="text-xl font-bold">{data.roll}°</p></div>
                             </div>
                         </div>
 
-                        {/* Battery Card */}
+                        {/* Battery Board Card */}
                         <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
                             <div className="flex justify-between mb-4">
                                 <Icon name="battery" className="text-emerald-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Batterie</span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Bordnetz</span>
                             </div>
-                            <p className="text-xs text-slate-500">Bordnetz</p>
                             <p className="text-4xl font-bold text-emerald-100">{data.batteryBoard} V</p>
+                            <p className="text-xs text-slate-500 mt-2">LiFePO4 Versorger</p>
+                        </div>
+
+                        {/* Battery Starter Card */}
+                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
+                            <div className="flex justify-between mb-4">
+                                <Icon name="zap" className="text-blue-400" />
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Starter</span>
+                            </div>
+                            <p className="text-4xl font-bold text-blue-100">{data.batteryStart} V</p>
+                            <p className="text-xs text-slate-500 mt-2">Starterbatterie</p>
                         </div>
 
                         {/* Gas Card */}
                         <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isGasAlarm ? 'border-red-500 bg-red-900/10' : 'border-slate-800'}`}>
                             <div className="flex justify-between mb-4">
-                                <Icon name="alert-triangle" className={isGasAlarm ? "text-red-500" : "text-slate-500"} />
+                                <Icon name="alert-triangle" className={isGasAlarm ? "text-red-500 animate-pulse" : "text-slate-500"} />
                                 <span className="text-[10px] text-slate-500 font-bold uppercase">Sicherheit</span>
                             </div>
                             <p className="text-xs text-slate-500">Gassensor</p>
@@ -163,7 +199,7 @@
                         <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
                             <div className="flex justify-between mb-4">
                                 <Icon name="waves" className="text-blue-500" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Wasser</span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Frischwasser</span>
                             </div>
                             <p className="text-4xl font-bold">{data.waterLevel} %</p>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
@@ -175,9 +211,9 @@
                     <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900 flex justify-between items-center opacity-50">
                         <div className="flex items-center gap-2 text-xs">
                             <Icon name="clock" className="w-3 h-3" />
-                            <span>Zuletzt aktualisiert: {data.lastUpdate}</span>
+                            <span>Stand: {data.lastUpdate}</span>
                         </div>
-                        <span className="text-[10px] font-bold tracking-widest uppercase">ESP32 Live Stream</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-emerald-500">System Live</span>
                     </footer>
                 </div>
             );
