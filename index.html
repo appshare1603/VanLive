@@ -15,6 +15,13 @@
     <style>
         body { background-color: #020617; }
         .horizon-line { transition: transform 0.3s ease-out; }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        .scan-line {
+            animation: scan 4s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -130,6 +137,33 @@
                                     <p className="text-lg font-medium text-slate-300">{data.weather.forecast}</p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Außenkamera Simulation */}
+                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
+                            <div className="flex justify-between mb-4">
+                                <Icon name="video" className="text-red-400" />
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Außenkamera</span>
+                            </div>
+                            <div className="relative flex-grow bg-black rounded-xl overflow-hidden aspect-video border border-slate-800">
+                                {/* Kamerabild Simulation */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                    <Icon name="mountain" className="w-16 h-16 text-slate-400" />
+                                </div>
+                                {/* Scanline Effekt */}
+                                <div className="scan-line absolute left-0 right-0 h-0.5 bg-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                {/* Live Indikator */}
+                                <div className="absolute top-2 left-2 flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                                    <span className="text-[8px] font-bold uppercase tracking-tighter">Live</span>
+                                </div>
+                                <div className="absolute bottom-2 right-2 text-[8px] font-mono text-slate-400">
+                                    CAM_01_REAR
+                                </div>
+                            </div>
+                            <button className="mt-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[10px] font-bold uppercase transition-colors">
+                                Stream öffnen
+                            </button>
                         </div>
 
                         {/* Leveling Card mit Visualisierung */}
