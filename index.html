@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Van-Zentrale Dashboard (by DavisOnTheRoad)</title>
+    <title>VanLive Dashboard</title>
     <!-- Tailwind CSS für das Design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & Babel für die Live-Kompilierung im Browser -->
@@ -22,7 +22,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Icons als Komponente definieren, da lucide-react im Browser anders eingebunden wird
+        // Icons als Komponente definieren
         const Icon = ({ name, className }) => {
             useEffect(() => {
                 if (window.lucide) {
@@ -58,7 +58,7 @@
                     weather: {
                         condition: Math.random() > 0.7 ? "Regen" : (Math.random() > 0.4 ? "Bewölkt" : "Sonnig"),
                         temp: (5 + Math.random() * 10).toFixed(0),
-                        forecast: "Stabil über Nacht"
+                        forecast: "Heiter bis wolkig, nachts frostig"
                     },
                     lastUpdate: new Date().toLocaleTimeString('de-DE')
                 };
@@ -80,9 +80,9 @@
                     <header className="flex justify-between items-center max-w-7xl mx-auto mb-8">
                         <div className="text-left">
                             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                VanLIve by DavisOnTheRoad
+                                VanLive
                             </h1>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Live ESP32 Stream</p>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">by DavisOnTheRoad</p>
                         </div>
                         <button onClick={fetchData} className="p-3 bg-slate-800 rounded-2xl border border-slate-700">
                             <Icon name="refresh-cw" className={`w-5 h-5 text-blue-400 ${loading ? 'animate-spin' : ''}`} />
@@ -90,11 +90,30 @@
                     </header>
 
                     <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+                        
+                        {/* Wetter Forecast Card */}
+                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 lg:col-span-2">
+                            <div className="flex justify-between mb-4">
+                                <Icon name={data.weather.condition === "Regen" ? "cloud-rain" : (data.weather.condition === "Bewölkt" ? "cloud" : "sun")} className="text-yellow-400" />
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Wetter Vorhersage</span>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div>
+                                    <p className="text-4xl font-bold">{data.weather.temp} °C</p>
+                                    <p className="text-sm text-slate-400">{data.weather.condition}</p>
+                                </div>
+                                <div className="border-l border-slate-800 pl-6">
+                                    <p className="text-xs text-slate-500 italic uppercase mb-1">Ausblick</p>
+                                    <p className="text-lg font-medium text-slate-300">{data.weather.forecast}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Leveling Card */}
                         <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isUnlevel ? 'border-purple-500' : 'border-slate-800'}`}>
                             <div className="flex justify-between mb-4">
                                 <Icon name="compass" className="text-purple-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Neigung</span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Ausrichtung</span>
                             </div>
                             <div className="flex gap-4">
                                 <div><p className="text-xs text-slate-500">Pitch</p><p className="text-2xl font-bold">{data.pitch}°</p></div>
@@ -118,7 +137,7 @@
                                 <Icon name="alert-triangle" className={isGasAlarm ? "text-red-500" : "text-slate-500"} />
                                 <span className="text-[10px] text-slate-500 font-bold uppercase">Sicherheit</span>
                             </div>
-                            <p className="text-xs text-slate-500">Gaswert</p>
+                            <p className="text-xs text-slate-500">Gassensor</p>
                             <p className={`text-4xl font-bold ${isGasAlarm ? 'text-red-500' : ''}`}>{data.gasValue} ppm</p>
                         </div>
 
@@ -156,9 +175,9 @@
                     <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900 flex justify-between items-center opacity-50">
                         <div className="flex items-center gap-2 text-xs">
                             <Icon name="clock" className="w-3 h-3" />
-                            <span>Update: {data.lastUpdate}</span>
+                            <span>Zuletzt aktualisiert: {data.lastUpdate}</span>
                         </div>
-                        <span className="text-[10px] font-bold tracking-widest uppercase">System OK</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase">ESP32 Live Stream</span>
                     </footer>
                 </div>
             );
