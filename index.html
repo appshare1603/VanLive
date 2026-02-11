@@ -2,268 +2,288 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VanLive Dashboard</title>
-    <!-- Tailwind CSS für das Design -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & Babel für die Live-Kompilierung im Browser -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VanLive Pro Dashboard</title>
+    
+    <!-- Externe Bibliotheken via CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide wird geladen, aber wir nutzen es vorsichtiger -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
-        body { background-color: #020617; }
-        .horizon-line { transition: transform 0.3s ease-out; }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
+        body { 
+            background-color: #020617; 
+            margin: 0; 
+            overflow-x: hidden; 
+            min-height: 100vh;
+            color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            user-select: none;
         }
-        .scan-line {
-            animation: scan 4s linear infinite;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // Icons als Komponente definieren
-        const Icon = ({ name, className }) => {
+        /**
+         * Sicherere Icon-Komponente.
+         * Verwendet die lucide.createIcons API nach dem Rendern,
+         * um sicherzustellen, dass keine ungültigen React-Elemente erzeugt werden.
+         */
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const iconRef = useRef(null);
+
             useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
+                if (window.lucide && iconRef.current) {
+                    window.lucide.createIcons({
+                        attrs: { class: className },
+                        nameAttr: 'data-lucide'
+                    });
                 }
-            }, [name]);
-            return <i data-lucide={name} className={className}></i>;
+            }, [name, className]);
+
+            return <i ref={iconRef} data-lucide={name} className={className}></i>;
         };
 
-        // Visualisierung für den Neigungssensor
-        const LevelIndicator = ({ pitch, roll }) => {
+        const Speedometer = ({ speed = 0, isGpsActive = false }) => {
+            const radius = 36;
+            const circumference = 2 * Math.PI * radius;
+            const maxDisplaySpeed = 140;
+            const strokeDashoffset = circumference - (Math.min(speed, maxDisplaySpeed) / maxDisplaySpeed) * circumference;
+
             return (
-                <div className="relative w-24 h-24 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center overflow-hidden mx-auto mb-4">
-                    {/* Skala Kreise */}
-                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-75"></div>
-                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-50"></div>
-                    
-                    {/* Horizont Linie basierend auf Pitch und Roll */}
-                    <div 
-                        className="horizon-line absolute w-32 h-0.5 bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                        style={{ 
-                            transform: `rotate(${roll}deg) translateY(${pitch * 2}px)` 
-                        }}
-                    ></div>
-                    
-                    {/* Zentrum Markierung */}
-                    <div className="absolute w-2 h-2 bg-white rounded-full z-10"></div>
+                <div className="flex items-center gap-4 bg-slate-900/40 px-6 py-3 rounded-3xl border border-slate-800/50">
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-800" />
+                            <circle 
+                                cx="32" cy="32" r={radius} 
+                                stroke="currentColor" strokeWidth="4" fill="transparent" 
+                                strokeDasharray={circumference}
+                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 1s linear' }}
+                                className={isGpsActive ? 'text-emerald-500' : 'text-amber-500'}
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-xl font-black text-white leading-none">{Math.round(speed)}</span>
+                            <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">km/h</span>
+                        </div>
+                    </div>
+                    <div className="hidden sm:block">
+                        <div className="flex items-center gap-1 mb-0.5">
+                            <Icon name="map-pin" className={`w-3 h-3 ${isGpsActive ? 'text-emerald-500' : 'text-slate-500'}`} />
+                            <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none">GPS Speed</p>
+                        </div>
+                        <p className={`text-[8px] font-black uppercase tracking-widest leading-tight ${isGpsActive ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            {isGpsActive ? 'Signal Active' : 'No Signal'}
+                        </p>
+                    </div>
                 </div>
             );
         };
 
         const VanDashboard = () => {
-            const [data, setData] = useState({
-                tempIn: "--", tempOut: "--", humidity: "--",
-                batteryBoard: "--", batteryStart: "--",
-                waterLevel: 0, gasValue: 0, pitch: 0, roll: 0,
-                weather: { condition: "Sonnig", temp: "--", forecast: "Lade Daten..." },
-                lastUpdate: "Warte..."
+            const [gpsData, setGpsData] = useState({ speed: 0, active: false });
+            const [time, setTime] = useState(new Date());
+            const [data] = useState({
+                batteryBoard: "13.4",
+                batteryStart: "12.8",
+                solarPower: 145,
+                consumption: 42,
+                tempIn: "21.8",
+                tempOut: "7.4",
+                waterLevel: 68,
+                roll: -0.4,
+                pitch: 1.2
             });
-            const [loading, setLoading] = useState(false);
-
-            const fetchData = async () => {
-                setLoading(true);
-                await new Promise(r => setTimeout(r, 800));
-                const mockData = {
-                    tempIn: (19 + Math.random() * 5).toFixed(1),
-                    tempOut: (4 + Math.random() * 8).toFixed(1),
-                    humidity: (35 + Math.random() * 20).toFixed(0),
-                    batteryBoard: (12.6 + Math.random() * 0.6).toFixed(1),
-                    batteryStart: (12.2 + Math.random() * 0.4).toFixed(1),
-                    waterLevel: Math.floor(35 + Math.random() * 40),
-                    gasValue: Math.floor(Math.random() * 450),
-                    pitch: (Math.random() * 10 - 5).toFixed(1),
-                    roll: (Math.random() * 10 - 5).toFixed(1),
-                    weather: {
-                        condition: Math.random() > 0.7 ? "Regen" : (Math.random() > 0.4 ? "Bewölkt" : "Sonnig"),
-                        temp: (5 + Math.random() * 10).toFixed(0),
-                        forecast: "Heiter bis wolkig, nachts frostig"
-                    },
-                    lastUpdate: new Date().toLocaleTimeString('de-DE')
-                };
-                setData(mockData);
-                setLoading(false);
-            };
 
             useEffect(() => {
-                fetchData();
-                const interval = setInterval(fetchData, 15000);
-                return () => clearInterval(interval);
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                
+                let watchId;
+                if ("geolocation" in navigator) {
+                    watchId = navigator.geolocation.watchPosition(
+                        (p) => {
+                            const speedKmh = (p.coords.speed || 0) * 3.6;
+                            setGpsData({ speed: speedKmh, active: true });
+                        },
+                        () => setGpsData(prev => ({ ...prev, active: false })),
+                        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                    );
+                }
+                
+                return () => {
+                    clearInterval(timer);
+                    if (watchId) navigator.geolocation.clearWatch(watchId);
+                };
             }, []);
 
-            const isGasAlarm = parseInt(data.gasValue) > 350;
-            const isUnlevel = Math.abs(parseFloat(data.pitch)) > 1.5 || Math.abs(parseFloat(data.roll)) > 1.5;
-
             return (
-                <div className="min-h-screen text-slate-100 p-4 md:p-8">
-                    <header className="flex justify-between items-center max-w-7xl mx-auto mb-8">
-                        <div className="text-left">
-                            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                VanLive
-                            </h1>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">by DavisOnTheRoad</p>
+                <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+                    <header className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-6 mb-10">
+                        <div className="flex items-center gap-4">
+                            <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                                <Icon name="layout-grid" className="w-8 h-8 text-emerald-500" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black italic uppercase leading-none tracking-tighter">
+                                    VanLive<span className="text-emerald-500 text-xs ml-1 font-black">Pro</span>
+                                </h1>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                    System Intelligence v4.0
+                                </p>
+                            </div>
                         </div>
-                        <button onClick={fetchData} className="p-3 bg-slate-800 rounded-2xl border border-slate-700">
-                            <Icon name="refresh-cw" className={`w-5 h-5 text-blue-400 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
+
+                        <div className="flex items-center gap-4">
+                            <Speedometer speed={gpsData.speed} isGpsActive={gpsData.active} />
+                            <div className="bg-slate-900/60 px-6 py-3 rounded-3xl border border-slate-800/50 text-right shadow-2xl">
+                                <p className="text-4xl font-black text-white tabular-nums tracking-tighter leading-none">
+                                    {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+                                    {time.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })}
+                                </p>
+                            </div>
+                        </div>
                     </header>
 
-                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-                        
-                        {/* Wetter Forecast Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 lg:col-span-2">
-                            <div className="flex justify-between mb-4">
-                                <Icon name={data.weather.condition === "Regen" ? "cloud-rain" : (data.weather.condition === "Bewölkt" ? "cloud" : "sun")} className="text-yellow-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Wetter Vorhersage</span>
+                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Batterie Status */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-3 bg-emerald-500/10 rounded-xl"><Icon name="battery" className="w-6 h-6 text-emerald-500" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Energie</span>
                             </div>
-                            <div className="flex items-center gap-6">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-4xl font-bold">{data.weather.temp} °C</p>
-                                    <p className="text-sm text-slate-400">{data.weather.condition}</p>
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Bordbatterie</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-white">{data.batteryBoard}</span><span className="text-sm font-bold text-emerald-500/50">V</span></div>
                                 </div>
-                                <div className="border-l border-slate-800 pl-6">
-                                    <p className="text-xs text-slate-500 italic uppercase mb-1">Ausblick</p>
-                                    <p className="text-lg font-medium text-slate-300">{data.weather.forecast}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Radio Integration (Antenne 1 Webplayer) */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
-                            <div className="flex justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Icon name="radio" className="text-orange-400" />
-                                    <span className="text-xs font-bold">Antenne 1</span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Entertainment</span>
-                            </div>
-                            <div className="relative flex-grow bg-slate-950 rounded-xl overflow-hidden border border-slate-800 h-48">
-                                <iframe 
-                                    src="https://www.antenne1.de/webradio/player" 
-                                    className="w-full h-full border-none"
-                                    title="Antenne 1 Radio"
-                                    allow="autoplay; encrypted-media"
-                                ></iframe>
-                            </div>
-                        </div>
-
-                        {/* Außenkamera Simulation */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="video" className="text-red-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Außenkamera</span>
-                            </div>
-                            <div className="relative flex-grow bg-black rounded-xl overflow-hidden aspect-video border border-slate-800">
-                                {/* Kamerabild Simulation */}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                                    <Icon name="mountain" className="w-16 h-16 text-slate-400" />
-                                </div>
-                                {/* Scanline Effekt */}
-                                <div className="scan-line absolute left-0 right-0 h-0.5 bg-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                                {/* Live Indikator */}
-                                <div className="absolute top-2 left-2 flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                                    <span className="text-[8px] font-bold uppercase tracking-tighter">Live</span>
-                                </div>
-                                <div className="absolute bottom-2 right-2 text-[8px] font-mono text-slate-400">
-                                    CAM_01_REAR
+                                <div className="border-l border-slate-800 pl-4">
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Starter</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-500">{data.batteryStart}</span><span className="text-sm font-bold text-slate-700">V</span></div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Leveling Card mit Visualisierung */}
-                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isUnlevel ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border-slate-800'}`}>
-                            <div className="flex justify-between mb-4">
-                                <Icon name="compass" className="text-purple-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Ausrichtung</span>
+                        {/* Power Flow */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-3 bg-orange-500/10 rounded-xl"><Icon name="zap" className="w-6 h-6 text-orange-500" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Leistung</span>
                             </div>
-                            
-                            <LevelIndicator pitch={parseFloat(data.pitch)} roll={parseFloat(data.roll)} />
-                            
-                            <div className="flex justify-around text-center">
-                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Pitch</p><p className="text-xl font-bold">{data.pitch}°</p></div>
-                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Roll</p><p className="text-xl font-bold">{data.roll}°</p></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Solar Input</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-orange-500">+{data.solarPower}</span><span className="text-sm font-bold text-orange-500/30">W</span></div>
+                                </div>
+                                <div className="border-l border-slate-800 pl-4">
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Verbrauch</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-red-400">-{data.consumption}</span><span className="text-sm font-bold text-red-400/30">W</span></div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Battery Board Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="battery" className="text-emerald-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Bordnetz</span>
+                        {/* Klima */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-3 bg-blue-500/10 rounded-xl"><Icon name="thermometer" className="w-6 h-6 text-blue-400" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Klima</span>
                             </div>
-                            <p className="text-4xl font-bold text-emerald-100">{data.batteryBoard} V</p>
-                            <p className="text-xs text-slate-500 mt-2">LiFePO4 Versorger</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Innenraum</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-white">{data.tempIn}</span><span className="text-sm font-bold text-slate-700">°C</span></div>
+                                </div>
+                                <div className="border-l border-slate-800 pl-4">
+                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Aussen</p>
+                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-blue-400">{data.tempOut}</span><span className="text-sm font-bold text-blue-400/30">°C</span></div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Battery Starter Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="zap" className="text-blue-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Starter</span>
+                        {/* Wassertank */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="p-3 bg-blue-500/10 rounded-xl"><Icon name="droplets" className="w-6 h-6 text-blue-400" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Frischwasser</span>
                             </div>
-                            <p className="text-4xl font-bold text-blue-100">{data.batteryStart} V</p>
-                            <p className="text-xs text-slate-500 mt-2">Starterbatterie</p>
+                            <div className="mb-4">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="text-5xl font-black text-white">{data.waterLevel}<span className="text-xl text-blue-500/50 ml-1">%</span></span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">~ 62 Liter</span>
+                                </div>
+                                <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800/50 p-0.5">
+                                    <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width: `${data.waterLevel}%`}}></div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Gas Card */}
-                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isGasAlarm ? 'border-red-500 bg-red-900/10' : 'border-slate-800'}`}>
-                            <div className="flex justify-between mb-4">
-                                <Icon name="alert-triangle" className={isGasAlarm ? "text-red-500 animate-pulse" : "text-slate-500"} />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Sicherheit</span>
+                        {/* Gyroskop / Leveling */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="p-3 bg-purple-500/10 rounded-xl"><Icon name="compass" className="w-6 h-6 text-purple-400" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Niveau</span>
                             </div>
-                            <p className="text-xs text-slate-500">Gassensor</p>
-                            <p className={`text-4xl font-bold ${isGasAlarm ? 'text-red-500' : ''}`}>{data.gasValue} ppm</p>
+                            <div className="space-y-6 pt-2">
+                                <div className="relative h-2 bg-slate-950 rounded-full border border-slate-800/50">
+                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-emerald-500/10 border-x border-emerald-500/10"></div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-slate-950 shadow-lg transition-all" style={{left: `calc(50% + ${data.roll * 20}px)`}}></div>
+                                    <span className="absolute -top-5 left-0 text-[8px] font-bold text-slate-600 uppercase tracking-widest">Roll: {data.roll}°</span>
+                                </div>
+                                <div className="relative h-2 bg-slate-950 rounded-full border border-slate-800/50">
+                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-emerald-500/10 border-x border-emerald-500/10"></div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-slate-950 shadow-lg transition-all" style={{left: `calc(50% + ${data.pitch * 20}px)`}}></div>
+                                    <span className="absolute -top-5 left-0 text-[8px] font-bold text-slate-600 uppercase tracking-widest">Pitch: {data.pitch}°</span>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Temp Indoor */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="thermometer" className="text-orange-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Innen</span>
+                        {/* Quick Apps */}
+                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+                             <div className="flex justify-between items-start mb-6">
+                                <div className="p-3 bg-slate-700/10 rounded-xl"><Icon name="grid" className="w-6 h-6 text-slate-400" /></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tools</span>
                             </div>
-                            <p className="text-4xl font-bold">{data.tempIn} °C</p>
-                        </div>
-
-                        {/* Temp Outdoor */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="cloud" className="text-blue-300" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Außen</span>
-                            </div>
-                            <p className="text-4xl font-bold">{data.tempOut} °C</p>
-                        </div>
-
-                        {/* Water Level */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="waves" className="text-blue-500" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Frischwasser</span>
-                            </div>
-                            <p className="text-4xl font-bold">{data.waterLevel} %</p>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                                <div className="bg-blue-500 h-full transition-all duration-1000" style={{width: `${data.waterLevel}%`}}></div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-emerald-500/30 transition-all group">
+                                    <Icon name="music" className="w-5 h-5 text-slate-500 group-hover:text-emerald-500 mb-2" />
+                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Music</span>
+                                </button>
+                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-emerald-500/30 transition-all group">
+                                    <Icon name="map" className="w-5 h-5 text-slate-500 group-hover:text-emerald-500 mb-2" />
+                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Maps</span>
+                                </button>
+                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-red-500/30 transition-all group">
+                                    <Icon name="video" className="w-5 h-5 text-slate-500 group-hover:text-red-500 mb-2" />
+                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Cam</span>
+                                </button>
                             </div>
                         </div>
                     </main>
 
-                    <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900 flex justify-between items-center opacity-50">
-                        <div className="flex items-center gap-2 text-xs">
-                            <Icon name="clock" className="w-3 h-3" />
-                            <span>Stand: {data.lastUpdate}</span>
+                    <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900/50 flex flex-wrap justify-between items-center gap-4 text-slate-600">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <Icon name="bluetooth" className="w-3 h-3 text-emerald-500/50" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">Victron Connected</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Icon name="wifi" className="w-3 h-3 text-emerald-500/50" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">LTE-Mesh Online</span>
+                            </div>
                         </div>
-                        <span className="text-[10px] font-bold tracking-widest uppercase text-emerald-500">System Live</span>
+                        <p className="text-[9px] font-black uppercase tracking-[0.4em]">Integrated Van Control System</p>
                     </footer>
                 </div>
             );
