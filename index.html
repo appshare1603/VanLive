@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VanLive Pro Dashboard</title>
+    <title>VanLive Pro Dashboard - Tacho Edition</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,26 +12,10 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        :root {
-            --bg-light: #f8fafc;
-            --bg-dark: #020617;
-        }
-        body { 
-            margin: 0; 
-            overflow-x: hidden; 
-            min-height: 100vh;
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-            user-select: none;
-            transition: background-color 0.5s ease;
-        }
-        /* Automatische Farbanpassung der Scrollbar */
-        @media (prefers-color-scheme: dark) {
-            body { background-color: var(--bg-dark); color: #f1f5f9; }
-        }
-        @media (prefers-color-scheme: light) {
-            body { background-color: var(--bg-light); color: #0f172a; }
-        }
-
+        :root { --bg-light: #f8fafc; --bg-dark: #020617; }
+        body { margin: 0; overflow-x: hidden; min-height: 100vh; font-family: ui-sans-serif, system-ui, sans-serif; user-select: none; transition: background-color 0.5s ease; }
+        @media (prefers-color-scheme: dark) { body { background-color: var(--bg-dark); color: #f1f5f9; } }
+        @media (prefers-color-scheme: light) { body { background-color: var(--bg-light); color: #0f172a; } }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
@@ -42,6 +26,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        const apiKey = ""; 
 
         const Icon = ({ name, className = "w-6 h-6" }) => {
             const iconRef = useRef(null);
@@ -57,254 +42,190 @@
         };
 
         const Speedometer = ({ speed = 0, isGpsActive = false }) => {
-            const radius = 45;
+            const radius = 40;
             const circumference = 2 * Math.PI * radius;
-            const maxDisplaySpeed = 160;
-            const strokeDashoffset = circumference - (Math.min(speed, maxDisplaySpeed) / maxDisplaySpeed) * circumference;
-
-            // Dynamische Farbwahl basierend auf deinen Wünschen
-            const getSpeedColor = (s) => {
-                if (s <= 30) return 'text-emerald-500';
-                if (s <= 50) return 'text-cyan-500';
-                if (s <= 100) return 'text-amber-500';
-                return 'text-rose-500';
-            };
-
-            const speedColorClass = getSpeedColor(speed);
+            const strokeDashoffset = circumference - (Math.min(speed, 140) / 140) * circumference;
+            const colorClass = speed > 100 ? 'text-rose-500' : speed > 50 ? 'text-amber-500' : 'text-emerald-500';
 
             return (
-                <div className="flex items-center gap-6 bg-white dark:bg-slate-900 shadow-xl dark:shadow-none px-8 py-4 rounded-[3rem] border border-slate-200 dark:border-slate-800 transition-all">
-                    <div className="relative w-24 h-24 flex items-center justify-center">
+                <div className="flex items-center gap-4 bg-white dark:bg-slate-900 px-6 py-2.5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-500">
+                    <div className="relative w-16 h-16 flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90 scale-110">
-                            <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="6" fill="transparent" className="text-slate-200 dark:text-slate-800" />
-                            <circle 
-                                cx="50" cy="50" r={radius} 
-                                stroke="currentColor" strokeWidth="6" fill="transparent" 
-                                strokeDasharray={circumference}
-                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease-out, color 0.5s ease' }}
-                                className={speedColorClass}
+                            <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                            <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" 
+                                strokeDasharray={circumference} 
+                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s ease-out' }} 
+                                className={colorClass} 
                             />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
-                            <span className={`text-4xl font-black tabular-nums transition-colors duration-500 ${speedColorClass}`}>
-                                {Math.round(speed)}
-                            </span>
-                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">km/h</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pt-0.5">
+                            <span className={`text-xl font-black tabular-nums ${colorClass}`}>{Math.round(speed)}</span>
+                            <span className="text-[7px] font-black text-slate-400 uppercase leading-none">km/h</span>
                         </div>
                     </div>
-                    <div className="flex flex-col justify-center">
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <Icon name="satellite-dish" className={`w-4 h-4 ${isGpsActive ? 'text-emerald-500' : 'text-slate-400'}`} />
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">GPS Fix</p>
+                    <div className="border-l border-slate-100 dark:border-slate-800 pl-4">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <Icon name="satellite-dish" className={`w-3 h-3 ${isGpsActive ? 'text-emerald-500' : 'text-slate-400'}`} />
+                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">GPS</p>
                         </div>
-                        <p className={`text-[11px] font-black uppercase tracking-widest leading-tight ${isGpsActive ? 'text-emerald-500' : 'text-rose-500 animate-pulse'}`}>
-                            {isGpsActive ? 'Verbunden' : 'Suche...'}
+                        <p className={`text-[9px] font-black uppercase tracking-widest ${isGpsActive ? 'text-emerald-500' : 'text-rose-500 animate-pulse'}`}>
+                            {isGpsActive ? 'Active' : 'Search'}
                         </p>
                     </div>
                 </div>
             );
         };
 
-        const VanDashboard = () => {
-            const [gpsData, setGpsData] = useState({ speed: 0, active: false });
+        const WeatherModule = ({ lat, lon, onWeatherData }) => {
+            const [weather, setWeather] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                if (!lat || !lon) return;
+                const fetchWeather = async (retries = 0) => {
+                    try {
+                        const prompt = `Aktuelles Wetter für Lat: ${lat}, Lon: ${lon}. JSON: { "temp": Zahl, "condition": "String", "location": "Stadt", "icon": "Lucide-Icon" }`;
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+                        });
+                        const result = await response.json();
+                        const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                        setWeather(data);
+                        if(onWeatherData) onWeatherData(data);
+                        setLoading(false);
+                    } catch (error) {
+                        if (retries < 3) setTimeout(() => fetchWeather(retries + 1), 2000);
+                        else setLoading(false);
+                    }
+                };
+                fetchWeather();
+            }, [lat, lon]);
+
+            if (loading) return <div className="h-14 w-32 bg-slate-100 dark:bg-slate-900 rounded-full animate-pulse"></div>;
+            if (!weather) return null;
+
+            return (
+                <div className="flex items-center gap-4 bg-white dark:bg-slate-900 px-5 py-2.5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <Icon name={weather.icon || 'cloud'} className="w-5 h-5 text-blue-500" />
+                    <div>
+                        <div className="flex items-baseline gap-0.5 leading-none">
+                            <span className="text-xl font-black">{Math.round(weather.temp)}</span>
+                            <span className="text-[10px] font-bold text-slate-400">°C</span>
+                        </div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[60px]">{weather.location}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const DashboardCard = ({ title, value, unit, icon, colorClass, subtitle }) => (
+            <div className="bg-white dark:bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800/50 shadow-sm">
+                <div className="flex justify-between items-start mb-6">
+                    <div className={`p-2.5 rounded-xl bg-opacity-10 ${colorClass.replace('text-', 'bg-')}`}>
+                        <Icon name={icon} className={`w-5 h-5 ${colorClass}`} />
+                    </div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black tracking-tighter">{value}</span>
+                    <span className={`text-xs font-bold opacity-60 ${colorClass}`}>{unit}</span>
+                </div>
+                {subtitle && <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-tighter">{subtitle}</p>}
+            </div>
+        );
+
+        const App = () => {
+            const [coords, setCoords] = useState({ lat: null, lon: null });
+            const [outdoorTemp, setOutdoorTemp] = useState("--");
+            const [speed, setSpeed] = useState(0);
+            const [isGpsActive, setIsGpsActive] = useState(false);
             const [time, setTime] = useState(new Date());
-            
-            // Simuliert Daten - im echten Betrieb kämen diese von der API/Bluetooth
-            const [data] = useState({
-                batteryBoard: "13.6",
-                batteryStart: "12.7",
-                solarPower: 210,
-                consumption: 35,
-                tempIn: "22.5",
-                tempOut: "11.2",
-                waterLevel: 72,
-                roll: 0.2,
-                pitch: -1.5
-            });
 
             useEffect(() => {
                 const timer = setInterval(() => setTime(new Date()), 1000);
-                
-                let watchId;
                 if ("geolocation" in navigator) {
-                    watchId = navigator.geolocation.watchPosition(
-                        (p) => {
-                            const speedKmh = (p.coords.speed || 0) * 3.6;
-                            setGpsData({ speed: speedKmh, active: true });
-                        },
-                        () => setGpsData(prev => ({ ...prev, active: false })),
-                        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-                    );
+                    const watchId = navigator.geolocation.watchPosition((p) => {
+                        setCoords({ lat: p.coords.latitude, lon: p.coords.longitude });
+                        setSpeed((p.coords.speed || 0) * 3.6);
+                        setIsGpsActive(true);
+                    }, () => setIsGpsActive(false), { enableHighAccuracy: true });
+                    return () => { clearInterval(timer); navigator.geolocation.clearWatch(watchId); };
                 }
-                
-                return () => {
-                    clearInterval(timer);
-                    if (watchId) navigator.geolocation.clearWatch(watchId);
-                };
+                return () => clearInterval(timer);
             }, []);
 
             return (
-                <div className="min-h-screen p-4 md:p-10 overflow-y-auto custom-scrollbar transition-colors duration-500">
-                    <header className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-8 mb-12">
-                        <div className="flex items-center gap-5">
-                            <div className="p-5 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-3xl border border-emerald-500/20">
-                                <Icon name="layout-dashboard" className="w-10 h-10 text-emerald-500" />
+                <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto custom-scrollbar">
+                    <header className="flex flex-wrap items-center justify-between gap-4 mb-10">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                                <Icon name="compass" className="w-6 h-6 text-emerald-500" />
                             </div>
-                            <div>
-                                <h1 className="text-3xl font-black italic uppercase leading-none tracking-tighter">
-                                    VanLive<span className="text-emerald-500 text-sm ml-1 font-black">Pro</span>
-                                </h1>
-                                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
-                                    Auto-Adaptive Interface
-                                </p>
-                            </div>
+                            <h1 className="text-xl font-black italic uppercase tracking-tighter">VanLive <span className="text-emerald-500">Pro</span></h1>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-6">
-                            <Speedometer speed={gpsData.speed} isGpsActive={gpsData.active} />
-                            <div className="bg-white dark:bg-slate-900 px-8 py-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-right shadow-lg dark:shadow-none min-w-[160px]">
-                                <p className="text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
-                                    {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] mt-1.5">
-                                    {time.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'short' })}
-                                </p>
-                            </div>
+                        <div className="flex items-center gap-3">
+                            <Speedometer speed={speed} isGpsActive={isGpsActive} />
+                            <WeatherModule lat={coords.lat} lon={coords.lon} onWeatherData={(d) => setOutdoorTemp(d.temp)} />
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 px-6 py-2.5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-center min-w-[120px]">
+                            <p className="text-2xl font-black tabular-nums tracking-tighter leading-none">
+                                {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
+                                {time.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}
+                            </p>
                         </div>
                     </header>
 
-                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {/* Batterie Status */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-10">
-                                <div className="p-4 bg-emerald-500/10 rounded-2xl"><Icon name="battery" className="w-7 h-7 text-emerald-500" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Energiehaushalt</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Wohnraum</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black">{data.batteryBoard}</span><span className="text-base font-bold text-emerald-500/60">V</span></div>
-                                </div>
-                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Starter</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-slate-400 dark:text-slate-500">{data.batteryStart}</span><span className="text-base font-bold text-slate-300 dark:text-slate-700">V</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Power Flow */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-10">
-                                <div className="p-4 bg-orange-500/10 rounded-2xl"><Icon name="zap" className="w-7 h-7 text-orange-500" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leistungsfluss</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Solar</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-orange-500">+{data.solarPower}</span><span className="text-base font-bold text-orange-500/30">W</span></div>
-                                </div>
-                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Last</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-rose-500">-{data.consumption}</span><span className="text-base font-bold text-rose-500/30">W</span></div>
-                                </div>
-                            </div>
-                        </div>
-
+                    <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Klima */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-10">
-                                <div className="p-4 bg-blue-500/10 rounded-2xl"><Icon name="thermometer" className="w-7 h-7 text-blue-400" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Klima</span>
+                        <DashboardCard title="Innentemperatur" value="21.8" unit="°C" icon="thermometer" colorClass="text-orange-500" subtitle="Feuchte: 42%" />
+                        <DashboardCard title="Außentemperatur" value={outdoorTemp} unit="°C" icon="cloud-sun" colorClass="text-blue-400" subtitle="Live-Wetter" />
+                        
+                        {/* Niveau / Lage */}
+                        <div className="bg-white dark:bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800/50 shadow-sm">
+                             <div className="flex justify-between items-start mb-6">
+                                <div className="p-2.5 rounded-xl bg-purple-500/10">
+                                    <Icon name="axis-3d" className="w-5 h-5 text-purple-500" />
+                                </div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Niveau</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Innen</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black">{data.tempIn}</span><span className="text-base font-bold text-slate-300 dark:text-slate-700">°C</span></div>
+                            <div className="grid grid-cols-2 gap-8 relative">
+                                <div className="text-center">
+                                    <p className="text-3xl font-black">1.4°</p>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pitch</p>
                                 </div>
-                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Aussen</p>
-                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-blue-400">{data.tempOut}</span><span className="text-base font-bold text-blue-400/30">°C</span></div>
+                                <div className="text-center">
+                                    <p className="text-3xl font-black">-0.2°</p>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Roll</p>
                                 </div>
+                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
                             </div>
                         </div>
 
-                        {/* Wassertank */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="p-4 bg-blue-500/10 rounded-2xl"><Icon name="droplets" className="w-7 h-7 text-blue-500" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frischwasser</span>
-                            </div>
-                            <div className="mb-4">
-                                <div className="flex justify-between items-end mb-3">
-                                    <span className="text-6xl font-black">{data.waterLevel}<span className="text-2xl text-blue-500/40 ml-1.5">%</span></span>
-                                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">~ 65 L</span>
-                                </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-950 h-4 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 p-0.5">
-                                    <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width: `${data.waterLevel}%`}}></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Neigung */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-10">
-                                <div className="p-4 bg-purple-500/10 rounded-2xl"><Icon name="compass" className="w-7 h-7 text-purple-400" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ausrichtung</span>
-                            </div>
-                            <div className="space-y-8 pt-4">
-                                <div className="relative h-3 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800">
-                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-emerald-500/5 border-x border-emerald-500/10"></div>
-                                    <div className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-200 rounded-full border-2 border-slate-950 shadow-xl transition-all duration-300" style={{left: `calc(50% + ${data.roll * 25}px)`}}></div>
-                                    <span className="absolute -top-6 left-0 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">Roll: {data.roll}°</span>
-                                </div>
-                                <div className="relative h-3 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800">
-                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-emerald-500/5 border-x border-emerald-500/10"></div>
-                                    <div className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-200 rounded-full border-2 border-slate-950 shadow-xl transition-all duration-300" style={{left: `calc(50% + ${data.pitch * 25}px)`}}></div>
-                                    <span className="absolute -top-6 left-0 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">Pitch: {data.pitch}°</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Apps/QuickActions */}
-                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl"><Icon name="grid-2x2" className="w-7 h-7 text-slate-400" /></div>
-                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Schnellstart</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                {[
-                                    { icon: 'music', label: 'Audio', color: 'hover:border-emerald-500/30' },
-                                    { icon: 'navigation', label: 'Route', color: 'hover:border-blue-500/30' },
-                                    { icon: 'camera', label: 'Cam', color: 'hover:border-rose-500/30' }
-                                ].map((app, idx) => (
-                                    <button key={idx} className={`flex flex-col items-center justify-center py-5 px-2 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-200 dark:border-slate-800 transition-all group ${app.color}`}>
-                                        <Icon name={app.icon} className="w-6 h-6 text-slate-400 group-hover:scale-110 transition-transform mb-3" />
-                                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase">{app.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* Energie & Wasser */}
+                        <DashboardCard title="Bordsystem" value="13.2" unit="V" icon="zap" colorClass="text-emerald-500" subtitle="Batterie: Optimal" />
+                        <DashboardCard title="Solar-Ertrag" value="+188" unit="W" icon="sun" colorClass="text-amber-500" subtitle="Ladung aktiv" />
+                        <DashboardCard title="Wassertank" value="68" unit="%" icon="droplet" colorClass="text-cyan-500" subtitle="Frischwasser" />
                     </main>
 
-                    <footer className="max-w-7xl mx-auto mt-16 pt-10 border-t border-slate-200 dark:border-slate-900/50 flex flex-wrap justify-between items-center gap-6 text-slate-400 dark:text-slate-600 mb-10">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest">V-Bus System Online</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                                <Icon name="shield-check" className="w-4 h-4 text-emerald-500/40" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Sicherheit OK</span>
-                            </div>
+                    <footer className="mt-12 flex justify-between items-center text-slate-400 border-t border-slate-100 dark:border-slate-900 pt-8">
+                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            GPS & Telemetrie aktiv
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-40">Designed for Roadtrips</p>
+                        <p className="text-[9px] font-black opacity-30 uppercase tracking-[0.3em]">VanLive Systems 2026</p>
                     </footer>
                 </div>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<VanDashboard />);
+        root.render(<App />);
     </script>
 </body>
 </html>
