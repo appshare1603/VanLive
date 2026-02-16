@@ -5,43 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VanLive Pro Dashboard</title>
     
-    <!-- Externe Bibliotheken via CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide wird geladen, aber wir nutzen es vorsichtiger -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
+        :root {
+            --bg-light: #f8fafc;
+            --bg-dark: #020617;
+        }
         body { 
-            background-color: #020617; 
             margin: 0; 
             overflow-x: hidden; 
             min-height: 100vh;
-            color: #f1f5f9;
             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
             user-select: none;
+            transition: background-color 0.5s ease;
         }
+        /* Automatische Farbanpassung der Scrollbar */
+        @media (prefers-color-scheme: dark) {
+            body { background-color: var(--bg-dark); color: #f1f5f9; }
+        }
+        @media (prefers-color-scheme: light) {
+            body { background-color: var(--bg-light); color: #0f172a; }
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        /**
-         * Sicherere Icon-Komponente.
-         * Verwendet die lucide.createIcons API nach dem Rendern,
-         * um sicherzustellen, dass keine ungültigen React-Elemente erzeugt werden.
-         */
         const Icon = ({ name, className = "w-6 h-6" }) => {
             const iconRef = useRef(null);
-
             useEffect(() => {
                 if (window.lucide && iconRef.current) {
                     window.lucide.createIcons({
@@ -50,41 +53,52 @@
                     });
                 }
             }, [name, className]);
-
             return <i ref={iconRef} data-lucide={name} className={className}></i>;
         };
 
         const Speedometer = ({ speed = 0, isGpsActive = false }) => {
-            const radius = 36;
+            const radius = 45;
             const circumference = 2 * Math.PI * radius;
-            const maxDisplaySpeed = 140;
+            const maxDisplaySpeed = 160;
             const strokeDashoffset = circumference - (Math.min(speed, maxDisplaySpeed) / maxDisplaySpeed) * circumference;
 
+            // Dynamische Farbwahl basierend auf deinen Wünschen
+            const getSpeedColor = (s) => {
+                if (s <= 30) return 'text-emerald-500';
+                if (s <= 50) return 'text-cyan-500';
+                if (s <= 100) return 'text-amber-500';
+                return 'text-rose-500';
+            };
+
+            const speedColorClass = getSpeedColor(speed);
+
             return (
-                <div className="flex items-center gap-4 bg-slate-900/40 px-6 py-3 rounded-3xl border border-slate-800/50">
-                    <div className="relative w-16 h-16 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-800" />
+                <div className="flex items-center gap-6 bg-white dark:bg-slate-900 shadow-xl dark:shadow-none px-8 py-4 rounded-[3rem] border border-slate-200 dark:border-slate-800 transition-all">
+                    <div className="relative w-24 h-24 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90 scale-110">
+                            <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="6" fill="transparent" className="text-slate-200 dark:text-slate-800" />
                             <circle 
-                                cx="32" cy="32" r={radius} 
-                                stroke="currentColor" strokeWidth="4" fill="transparent" 
+                                cx="50" cy="50" r={radius} 
+                                stroke="currentColor" strokeWidth="6" fill="transparent" 
                                 strokeDasharray={circumference}
-                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 1s linear' }}
-                                className={isGpsActive ? 'text-emerald-500' : 'text-amber-500'}
+                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease-out, color 0.5s ease' }}
+                                className={speedColorClass}
                             />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-xl font-black text-white leading-none">{Math.round(speed)}</span>
-                            <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">km/h</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
+                            <span className={`text-4xl font-black tabular-nums transition-colors duration-500 ${speedColorClass}`}>
+                                {Math.round(speed)}
+                            </span>
+                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">km/h</span>
                         </div>
                     </div>
-                    <div className="hidden sm:block">
-                        <div className="flex items-center gap-1 mb-0.5">
-                            <Icon name="map-pin" className={`w-3 h-3 ${isGpsActive ? 'text-emerald-500' : 'text-slate-500'}`} />
-                            <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none">GPS Speed</p>
+                    <div className="flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <Icon name="satellite-dish" className={`w-4 h-4 ${isGpsActive ? 'text-emerald-500' : 'text-slate-400'}`} />
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">GPS Fix</p>
                         </div>
-                        <p className={`text-[8px] font-black uppercase tracking-widest leading-tight ${isGpsActive ? 'text-emerald-500' : 'text-amber-500'}`}>
-                            {isGpsActive ? 'Signal Active' : 'No Signal'}
+                        <p className={`text-[11px] font-black uppercase tracking-widest leading-tight ${isGpsActive ? 'text-emerald-500' : 'text-rose-500 animate-pulse'}`}>
+                            {isGpsActive ? 'Verbunden' : 'Suche...'}
                         </p>
                     </div>
                 </div>
@@ -94,16 +108,18 @@
         const VanDashboard = () => {
             const [gpsData, setGpsData] = useState({ speed: 0, active: false });
             const [time, setTime] = useState(new Date());
+            
+            // Simuliert Daten - im echten Betrieb kämen diese von der API/Bluetooth
             const [data] = useState({
-                batteryBoard: "13.4",
-                batteryStart: "12.8",
-                solarPower: 145,
-                consumption: 42,
-                tempIn: "21.8",
-                tempOut: "7.4",
-                waterLevel: 68,
-                roll: -0.4,
-                pitch: 1.2
+                batteryBoard: "13.6",
+                batteryStart: "12.7",
+                solarPower: 210,
+                consumption: 35,
+                tempIn: "22.5",
+                tempOut: "11.2",
+                waterLevel: 72,
+                roll: 0.2,
+                pitch: -1.5
             });
 
             useEffect(() => {
@@ -128,162 +144,160 @@
             }, []);
 
             return (
-                <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 overflow-y-auto custom-scrollbar">
-                    <header className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-6 mb-10">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-                                <Icon name="layout-grid" className="w-8 h-8 text-emerald-500" />
+                <div className="min-h-screen p-4 md:p-10 overflow-y-auto custom-scrollbar transition-colors duration-500">
+                    <header className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-8 mb-12">
+                        <div className="flex items-center gap-5">
+                            <div className="p-5 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-3xl border border-emerald-500/20">
+                                <Icon name="layout-dashboard" className="w-10 h-10 text-emerald-500" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-black italic uppercase leading-none tracking-tighter">
-                                    VanLive<span className="text-emerald-500 text-xs ml-1 font-black">Pro</span>
+                                <h1 className="text-3xl font-black italic uppercase leading-none tracking-tighter">
+                                    VanLive<span className="text-emerald-500 text-sm ml-1 font-black">Pro</span>
                                 </h1>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                    System Intelligence v4.0
+                                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                                    Auto-Adaptive Interface
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-6">
                             <Speedometer speed={gpsData.speed} isGpsActive={gpsData.active} />
-                            <div className="bg-slate-900/60 px-6 py-3 rounded-3xl border border-slate-800/50 text-right shadow-2xl">
-                                <p className="text-4xl font-black text-white tabular-nums tracking-tighter leading-none">
+                            <div className="bg-white dark:bg-slate-900 px-8 py-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-right shadow-lg dark:shadow-none min-w-[160px]">
+                                <p className="text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
                                     {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
-                                    {time.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })}
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] mt-1.5">
+                                    {time.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'short' })}
                                 </p>
                             </div>
                         </div>
                     </header>
 
-                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {/* Batterie Status */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="p-3 bg-emerald-500/10 rounded-xl"><Icon name="battery" className="w-6 h-6 text-emerald-500" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Energie</span>
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-10">
+                                <div className="p-4 bg-emerald-500/10 rounded-2xl"><Icon name="battery" className="w-7 h-7 text-emerald-500" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Energiehaushalt</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Bordbatterie</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-white">{data.batteryBoard}</span><span className="text-sm font-bold text-emerald-500/50">V</span></div>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Wohnraum</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black">{data.batteryBoard}</span><span className="text-base font-bold text-emerald-500/60">V</span></div>
                                 </div>
-                                <div className="border-l border-slate-800 pl-4">
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Starter</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-500">{data.batteryStart}</span><span className="text-sm font-bold text-slate-700">V</span></div>
+                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Starter</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-slate-400 dark:text-slate-500">{data.batteryStart}</span><span className="text-base font-bold text-slate-300 dark:text-slate-700">V</span></div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Power Flow */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="p-3 bg-orange-500/10 rounded-xl"><Icon name="zap" className="w-6 h-6 text-orange-500" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Leistung</span>
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-10">
+                                <div className="p-4 bg-orange-500/10 rounded-2xl"><Icon name="zap" className="w-7 h-7 text-orange-500" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leistungsfluss</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Solar Input</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-orange-500">+{data.solarPower}</span><span className="text-sm font-bold text-orange-500/30">W</span></div>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Solar</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-orange-500">+{data.solarPower}</span><span className="text-base font-bold text-orange-500/30">W</span></div>
                                 </div>
-                                <div className="border-l border-slate-800 pl-4">
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Verbrauch</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-red-400">-{data.consumption}</span><span className="text-sm font-bold text-red-400/30">W</span></div>
+                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Last</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-rose-500">-{data.consumption}</span><span className="text-base font-bold text-rose-500/30">W</span></div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Klima */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="p-3 bg-blue-500/10 rounded-xl"><Icon name="thermometer" className="w-6 h-6 text-blue-400" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Klima</span>
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-10">
+                                <div className="p-4 bg-blue-500/10 rounded-2xl"><Icon name="thermometer" className="w-7 h-7 text-blue-400" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Klima</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Innenraum</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-white">{data.tempIn}</span><span className="text-sm font-bold text-slate-700">°C</span></div>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Innen</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black">{data.tempIn}</span><span className="text-base font-bold text-slate-300 dark:text-slate-700">°C</span></div>
                                 </div>
-                                <div className="border-l border-slate-800 pl-4">
-                                    <p className="text-[9px] font-bold text-slate-600 uppercase mb-1 tracking-wider">Aussen</p>
-                                    <div className="flex items-baseline gap-1"><span className="text-4xl font-black text-blue-400">{data.tempOut}</span><span className="text-sm font-bold text-blue-400/30">°C</span></div>
+                                <div className="border-l border-slate-200 dark:border-slate-800 pl-6">
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase mb-2 tracking-wider">Aussen</p>
+                                    <div className="flex items-baseline gap-1.5"><span className="text-5xl font-black text-blue-400">{data.tempOut}</span><span className="text-base font-bold text-blue-400/30">°C</span></div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Wassertank */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="p-3 bg-blue-500/10 rounded-xl"><Icon name="droplets" className="w-6 h-6 text-blue-400" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Frischwasser</span>
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-4 bg-blue-500/10 rounded-2xl"><Icon name="droplets" className="w-7 h-7 text-blue-500" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frischwasser</span>
                             </div>
                             <div className="mb-4">
-                                <div className="flex justify-between items-end mb-2">
-                                    <span className="text-5xl font-black text-white">{data.waterLevel}<span className="text-xl text-blue-500/50 ml-1">%</span></span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase">~ 62 Liter</span>
+                                <div className="flex justify-between items-end mb-3">
+                                    <span className="text-6xl font-black">{data.waterLevel}<span className="text-2xl text-blue-500/40 ml-1.5">%</span></span>
+                                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">~ 65 L</span>
                                 </div>
-                                <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800/50 p-0.5">
+                                <div className="w-full bg-slate-100 dark:bg-slate-950 h-4 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 p-0.5">
                                     <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width: `${data.waterLevel}%`}}></div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Gyroskop / Leveling */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="p-3 bg-purple-500/10 rounded-xl"><Icon name="compass" className="w-6 h-6 text-purple-400" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Niveau</span>
+                        {/* Neigung */}
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-10">
+                                <div className="p-4 bg-purple-500/10 rounded-2xl"><Icon name="compass" className="w-7 h-7 text-purple-400" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ausrichtung</span>
                             </div>
-                            <div className="space-y-6 pt-2">
-                                <div className="relative h-2 bg-slate-950 rounded-full border border-slate-800/50">
-                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-emerald-500/10 border-x border-emerald-500/10"></div>
-                                    <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-slate-950 shadow-lg transition-all" style={{left: `calc(50% + ${data.roll * 20}px)`}}></div>
-                                    <span className="absolute -top-5 left-0 text-[8px] font-bold text-slate-600 uppercase tracking-widest">Roll: {data.roll}°</span>
+                            <div className="space-y-8 pt-4">
+                                <div className="relative h-3 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800">
+                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-emerald-500/5 border-x border-emerald-500/10"></div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-200 rounded-full border-2 border-slate-950 shadow-xl transition-all duration-300" style={{left: `calc(50% + ${data.roll * 25}px)`}}></div>
+                                    <span className="absolute -top-6 left-0 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">Roll: {data.roll}°</span>
                                 </div>
-                                <div className="relative h-2 bg-slate-950 rounded-full border border-slate-800/50">
-                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-emerald-500/10 border-x border-emerald-500/10"></div>
-                                    <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-slate-950 shadow-lg transition-all" style={{left: `calc(50% + ${data.pitch * 20}px)`}}></div>
-                                    <span className="absolute -top-5 left-0 text-[8px] font-bold text-slate-600 uppercase tracking-widest">Pitch: {data.pitch}°</span>
+                                <div className="relative h-3 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800">
+                                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-emerald-500/5 border-x border-emerald-500/10"></div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-200 rounded-full border-2 border-slate-950 shadow-xl transition-all duration-300" style={{left: `calc(50% + ${data.pitch * 25}px)`}}></div>
+                                    <span className="absolute -top-6 left-0 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">Pitch: {data.pitch}°</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Quick Apps */}
-                        <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
-                             <div className="flex justify-between items-start mb-6">
-                                <div className="p-3 bg-slate-700/10 rounded-xl"><Icon name="grid" className="w-6 h-6 text-slate-400" /></div>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tools</span>
+                        {/* Apps/QuickActions */}
+                        <div className="bg-white dark:bg-slate-900/40 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800/50 shadow-sm dark:shadow-none">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl"><Icon name="grid-2x2" className="w-7 h-7 text-slate-400" /></div>
+                                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Schnellstart</span>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-emerald-500/30 transition-all group">
-                                    <Icon name="music" className="w-5 h-5 text-slate-500 group-hover:text-emerald-500 mb-2" />
-                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Music</span>
-                                </button>
-                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-emerald-500/30 transition-all group">
-                                    <Icon name="map" className="w-5 h-5 text-slate-500 group-hover:text-emerald-500 mb-2" />
-                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Maps</span>
-                                </button>
-                                <button className="flex flex-col items-center justify-center p-3 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-red-500/30 transition-all group">
-                                    <Icon name="video" className="w-5 h-5 text-slate-500 group-hover:text-red-500 mb-2" />
-                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Cam</span>
-                                </button>
+                            <div className="grid grid-cols-3 gap-4">
+                                {[
+                                    { icon: 'music', label: 'Audio', color: 'hover:border-emerald-500/30' },
+                                    { icon: 'navigation', label: 'Route', color: 'hover:border-blue-500/30' },
+                                    { icon: 'camera', label: 'Cam', color: 'hover:border-rose-500/30' }
+                                ].map((app, idx) => (
+                                    <button key={idx} className={`flex flex-col items-center justify-center py-5 px-2 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-200 dark:border-slate-800 transition-all group ${app.color}`}>
+                                        <Icon name={app.icon} className="w-6 h-6 text-slate-400 group-hover:scale-110 transition-transform mb-3" />
+                                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase">{app.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </main>
 
-                    <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900/50 flex flex-wrap justify-between items-center gap-4 text-slate-600">
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2">
-                                <Icon name="bluetooth" className="w-3 h-3 text-emerald-500/50" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Victron Connected</span>
+                    <footer className="max-w-7xl mx-auto mt-16 pt-10 border-t border-slate-200 dark:border-slate-900/50 flex flex-wrap justify-between items-center gap-6 text-slate-400 dark:text-slate-600 mb-10">
+                        <div className="flex items-center gap-8">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest">V-Bus System Online</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Icon name="wifi" className="w-3 h-3 text-emerald-500/50" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">LTE-Mesh Online</span>
+                            <div className="flex items-center gap-2.5">
+                                <Icon name="shield-check" className="w-4 h-4 text-emerald-500/40" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Sicherheit OK</span>
                             </div>
                         </div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.4em]">Integrated Van Control System</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-40">Designed for Roadtrips</p>
                     </footer>
                 </div>
             );
