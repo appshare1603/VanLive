@@ -2,275 +2,352 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VanLive Dashboard</title>
-    <!-- Tailwind CSS für das Design -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vanlife Ultimate Cockpit</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & Babel für die Live-Kompilierung im Browser -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <style>
-        body { background-color: #020617; }
-        .horizon-line { transition: transform 0.3s ease-out; }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
-        .scan-line {
-            animation: scan 4s linear infinite;
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
         }
+
+        .speed-font {
+            font-family: 'JetBrains+Mono', monospace;
+            letter-spacing: -0.05em;
+        }
+
+        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .glow-orange { box-shadow: 0 0 20px rgba(249, 115, 22, 0.2); }
+
+        .speed-ring {
+            transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .gps-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Verhindert Text-Selektion auf dem iPad */
+        * { -webkit-user-select: none; user-select: none; }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="p-6 md:p-10 min-h-screen">
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        // Icons als Komponente definieren
-        const Icon = ({ name, className }) => {
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            }, [name]);
-            return <i data-lucide={name} className={className}></i>;
-        };
-
-        // Visualisierung für den Neigungssensor
-        const LevelIndicator = ({ pitch, roll }) => {
-            return (
-                <div className="relative w-24 h-24 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center overflow-hidden mx-auto mb-4">
-                    {/* Skala Kreise */}
-                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-75"></div>
-                    <div className="absolute inset-0 border border-slate-700/50 rounded-full scale-50"></div>
-                    
-                    {/* Horizont Linie basierend auf Pitch und Roll */}
-                    <div 
-                        className="horizon-line absolute w-32 h-0.5 bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                        style={{ 
-                            transform: `rotate(${roll}deg) translateY(${pitch * 2}px)` 
-                        }}
-                    ></div>
-                    
-                    {/* Zentrum Markierung */}
-                    <div className="absolute w-2 h-2 bg-white rounded-full z-10"></div>
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <!-- TOP BAR: Zeit & GPS Status -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-slate-500 text-xs font-bold uppercase tracking-[0.3em] mb-1">Vanlife Systems Control</h1>
+                <div id="current-time" class="text-5xl font-black tracking-tight">00:00:00</div>
+                <div id="current-date" class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Lädt Datum...</div>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="glass-card px-5 py-3 flex items-center gap-3">
+                    <div id="gps-indicator" class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">GPS Signal</p>
+                        <p id="gps-status" class="text-xs font-semibold">SUCHE...</p>
+                    </div>
                 </div>
-            );
-        };
-
-        const VanDashboard = () => {
-            const [data, setData] = useState({
-                tempIn: "--", tempOut: "--", humidity: "--",
-                batteryBoard: "--", batteryStart: "--",
-                waterLevel: 0, gasValue: 0, pitch: 0, roll: 0,
-                weather: { condition: "Sonnig", temp: "--", forecast: "Lade Daten..." },
-                lastUpdate: "Warte..."
-            });
-            const [loading, setLoading] = useState(false);
-
-            const fetchData = async () => {
-                setLoading(true);
-                await new Promise(r => setTimeout(r, 800));
-                const mockData = {
-                    tempIn: (19 + Math.random() * 5).toFixed(1),
-                    tempOut: (4 + Math.random() * 8).toFixed(1),
-                    humidity: (35 + Math.random() * 20).toFixed(0),
-                    batteryBoard: (12.6 + Math.random() * 0.6).toFixed(1),
-                    batteryStart: (12.2 + Math.random() * 0.4).toFixed(1),
-                    waterLevel: Math.floor(35 + Math.random() * 40),
-                    gasValue: Math.floor(Math.random() * 450),
-                    pitch: (Math.random() * 10 - 5).toFixed(1),
-                    roll: (Math.random() * 10 - 5).toFixed(1),
-                    weather: {
-                        condition: Math.random() > 0.7 ? "Regen" : (Math.random() > 0.4 ? "Bewölkt" : "Sonnig"),
-                        temp: (5 + Math.random() * 10).toFixed(0),
-                        forecast: "Heiter bis wolkig, nachts frostig"
-                    },
-                    lastUpdate: new Date().toLocaleTimeString('de-DE')
-                };
-                setData(mockData);
-                setLoading(false);
-            };
-
-            useEffect(() => {
-                fetchData();
-                const interval = setInterval(fetchData, 15000);
-                return () => clearInterval(interval);
-            }, []);
-
-            const isGasAlarm = parseInt(data.gasValue) > 350;
-            const isUnlevel = Math.abs(parseFloat(data.pitch)) > 1.5 || Math.abs(parseFloat(data.roll)) > 1.5;
-
-            return (
-                <div className="min-h-screen text-slate-100 p-4 md:p-8">
-                    <header className="flex justify-between items-center max-w-7xl mx-auto mb-8">
-                        <div className="text-left">
-                            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                VanLive
-                            </h1>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">by DavisOnTheRoad</p>
-                        </div>
-                        <button onClick={fetchData} className="p-3 bg-slate-800 rounded-2xl border border-slate-700">
-                            <Icon name="refresh-cw" className={`w-5 h-5 text-blue-400 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-                    </header>
-
-                    <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-                        
-                        {/* Wetter Forecast Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 lg:col-span-2">
-                            <div className="flex justify-between mb-4">
-                                <Icon name={data.weather.condition === "Regen" ? "cloud-rain" : (data.weather.condition === "Bewölkt" ? "cloud" : "sun")} className="text-yellow-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Wetter Vorhersage</span>
-                            </div>
-                            <div className="flex items-center gap-6">
-                                <div>
-                                    <p className="text-4xl font-bold">{data.weather.temp} °C</p>
-                                    <p className="text-sm text-slate-400">{data.weather.condition}</p>
-                                </div>
-                                <div className="border-l border-slate-800 pl-6">
-                                    <p className="text-xs text-slate-500 italic uppercase mb-1">Ausblick</p>
-                                    <p className="text-lg font-medium text-slate-300">{data.weather.forecast}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Radio Integration (Antenne 1 Webplayer) */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
-                            <div className="flex justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Icon name="radio" className="text-orange-400" />
-                                    <span className="text-xs font-bold">Antenne 1</span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Entertainment</span>
-                            </div>
-                            <div className="relative flex-grow bg-slate-950 rounded-xl overflow-hidden border border-slate-800 h-48">
-                                <iframe 
-                                    src="https://www.antenne1.de/webradio/player" 
-                                    className="w-full h-full border-none"
-                                    title="Antenne 1 Radio"
-                                    allow="autoplay; encrypted-media"
-                                ></iframe>
-                            </div>
-                        </div>
-
-                        {/* Außenkamera Simulation */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 flex flex-col">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="video" className="text-red-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Außenkamera</span>
-                            </div>
-                            <div className="relative flex-grow bg-black rounded-xl overflow-hidden aspect-video border border-slate-800">
-                                {/* Kamerabild Simulation */}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                                    <Icon name="mountain" className="w-16 h-16 text-slate-400" />
-                                </div>
-                                {/* Scanline Effekt */}
-                                <div className="scan-line absolute left-0 right-0 h-0.5 bg-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                                {/* Live Indikator */}
-                                <div className="absolute top-2 left-2 flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                                    <span className="text-[8px] font-bold uppercase tracking-tighter">Live</span>
-                                </div>
-                                <div className="absolute bottom-2 right-2 text-[8px] font-mono text-slate-400">
-                                    CAM_01_REAR
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Leveling Card mit Visualisierung */}
-                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isUnlevel ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border-slate-800'}`}>
-                            <div className="flex justify-between mb-4">
-                                <Icon name="compass" className="text-purple-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Ausrichtung</span>
-                            </div>
-                            
-                            <LevelIndicator pitch={parseFloat(data.pitch)} roll={parseFloat(data.roll)} />
-                            
-                            <div className="flex justify-around text-center">
-                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Pitch</p><p className="text-xl font-bold">{data.pitch}°</p></div>
-                                <div><p className="text-[10px] text-slate-500 uppercase font-bold">Roll</p><p className="text-xl font-bold">{data.roll}°</p></div>
-                            </div>
-                        </div>
-
-                        {/* Battery Board Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="battery" className="text-emerald-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Bordnetz</span>
-                            </div>
-                            <p className="text-4xl font-bold text-emerald-100">{data.batteryBoard} V</p>
-                            <p className="text-xs text-slate-500 mt-2">LiFePO4 Versorger</p>
-                        </div>
-
-                        {/* Battery Starter Card */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="zap" className="text-blue-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Starter</span>
-                            </div>
-                            <p className="text-4xl font-bold text-blue-100">{data.batteryStart} V</p>
-                            <p className="text-xs text-slate-500 mt-2">Starterbatterie</p>
-                        </div>
-
-                        {/* Gas Card */}
-                        <div className={`bg-slate-900/50 p-6 rounded-[2rem] border ${isGasAlarm ? 'border-red-500 bg-red-900/10' : 'border-slate-800'}`}>
-                            <div className="flex justify-between mb-4">
-                                <Icon name="alert-triangle" className={isGasAlarm ? "text-red-500 animate-pulse" : "text-slate-500"} />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Sicherheit</span>
-                            </div>
-                            <p className="text-xs text-slate-500">Gassensor</p>
-                            <p className={`text-4xl font-bold ${isGasAlarm ? 'text-red-500' : ''}`}>{data.gasValue} ppm</p>
-                        </div>
-
-                        {/* Temp Indoor */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="thermometer" className="text-orange-400" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Innen</span>
-                            </div>
-                            <p className="text-4xl font-bold">{data.tempIn} °C</p>
-                        </div>
-
-                        {/* Temp Outdoor */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="cloud" className="text-blue-300" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Außen</span>
-                            </div>
-                            <p className="text-4xl font-bold">{data.tempOut} °C</p>
-                        </div>
-
-                        {/* Water Level */}
-                        <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-                            <div className="flex justify-between mb-4">
-                                <Icon name="waves" className="text-blue-500" />
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Frischwasser</span>
-                            </div>
-                            <p className="text-4xl font-bold">{data.waterLevel} %</p>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                                <div className="bg-blue-500 h-full transition-all duration-1000" style={{width: `${data.waterLevel}%`}}></div>
-                            </div>
-                        </div>
-                    </main>
-
-                    <footer className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-900 flex justify-between items-center opacity-50">
-                        <div className="flex items-center gap-2 text-xs">
-                            <Icon name="clock" className="w-3 h-3" />
-                            <span>Stand: {data.lastUpdate}</span>
-                        </div>
-                        <span className="text-[10px] font-bold tracking-widest uppercase text-emerald-500">System Live</span>
-                    </footer>
+                <div class="glass-card px-5 py-3 flex items-center gap-3">
+                    <div id="esp-indicator" class="w-3 h-3 rounded-full bg-orange-500 gps-pulse"></div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">ESP8266 Sensor</p>
+                        <p id="esp-status" class="text-xs font-semibold">VERBINDEN...</p>
+                    </div>
                 </div>
-            );
-        };
+            </div>
+        </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<VanDashboard />);
+        <!-- MAIN GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- SPEEDOMETER (iPad GPS) -->
+            <div class="lg:col-span-8 glass-card p-8 flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="absolute top-6 left-8 flex items-center gap-2 text-blue-400">
+                    <i data-lucide="gauge" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">Velocity</span>
+                </div>
+
+                <div class="relative flex items-center justify-center">
+                    <svg class="w-64 h-64 md:w-[420px] md:h-[420px]">
+                        <circle class="text-slate-800/40" stroke-width="12" stroke="currentColor" fill="transparent" r="150" cx="210" cy="210"/>
+                        <circle id="speed-circle" class="text-blue-500 speed-ring" stroke-width="12" stroke-dasharray="942" stroke-dashoffset="942" stroke-linecap="round" stroke="currentColor" fill="transparent" r="150" cx="210" cy="210"/>
+                    </svg>
+                    
+                    <div class="absolute text-center">
+                        <span id="speed-display" class="text-[120px] md:text-[160px] font-bold speed-font leading-none">0</span>
+                        <p class="text-xl text-slate-400 font-medium tracking-[0.4em] -mt-4 uppercase">km/h</p>
+                    </div>
+                </div>
+
+                <!-- GPS Stats Row -->
+                <div class="grid grid-cols-3 w-full mt-8 border-t border-slate-800/50 pt-8">
+                    <div class="text-center">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Höhe</p>
+                        <p id="alt-val" class="text-2xl font-bold italic">-- <span class="text-sm font-normal opacity-40">m</span></p>
+                    </div>
+                    <div class="text-center border-x border-slate-800/50">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Kurs</p>
+                        <p id="head-val" class="text-2xl font-bold text-blue-400">--</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Trip</p>
+                        <p id="trip-val" class="text-2xl font-bold">0.0 <span class="text-sm font-normal opacity-40">km</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SENSOR DATA (ESP8266) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                
+                <!-- ESP: Temperatur -->
+                <div class="glass-card p-6 flex flex-col justify-between glow-orange">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2 text-orange-500">
+                            <i data-lucide="thermometer" class="w-5 h-5"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest">Innenraum</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">ESP8266 Node</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="esp-temp" class="text-6xl font-black text-white">--.-</span>
+                        <span class="text-2xl text-slate-400 font-light">°C</span>
+                    </div>
+                    <div class="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="temp-bar" class="h-full bg-orange-500 transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- ESP: Luftfeuchtigkeit -->
+                <div class="glass-card p-6 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2 text-cyan-400">
+                            <i data-lucide="droplets" class="w-5 h-5"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest">Feuchtigkeit</span>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="esp-hum" class="text-6xl font-black text-white">--</span>
+                        <span class="text-2xl text-slate-400 font-light">%</span>
+                    </div>
+                </div>
+
+                <!-- GPS Details -->
+                <div class="glass-card p-6 bg-slate-900/40">
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Längengrad</span>
+                            <span id="lon-val" class="font-mono text-slate-300">--.------</span>
+                        </div>
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Breitengrad</span>
+                            <span id="lat-val" class="font-mono text-slate-300">--.------</span>
+                        </div>
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Genauigkeit</span>
+                            <span id="acc-val" class="text-slate-300">± -- m</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Permission Modal -->
+    <div id="modal-gps" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-6 hidden">
+        <div class="max-w-sm text-center">
+            <div class="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="map-pin" class="w-10 h-10 text-blue-500"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-3">GPS Zugriff benötigt</h2>
+            <p class="text-slate-400 text-sm mb-8">Damit der Tacho funktioniert, muss das iPad auf den GPS-Chip zugreifen dürfen.</p>
+            <button onclick="startApp()" class="w-full py-4 bg-blue-600 rounded-2xl font-bold hover:bg-blue-500 transition-colors">Aktivieren</button>
+        </div>
+    </div>
+
+    <script>
+        const MAX_SPEED = 140;
+        const CIRCUMFERENCE = 2 * Math.PI * 150;
+        let lastCoords = null;
+        let tripDistance = 0;
+
+        /**
+         * Initialisiert Lucide-Icons sicher
+         */
+        function initIcons() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                // Erneuter Versuch nach kurzer Verzögerung, falls das Skript noch lädt
+                setTimeout(initIcons, 100);
+            }
+        }
+
+        // --- GPS LOGIK ---
+        function updateGPS(position) {
+            const c = position.coords;
+            const speedKmh = Math.round((c.speed || 0) * 3.6);
+            
+            // UI Updates
+            const speedDisplay = document.getElementById('speed-display');
+            const speedCircle = document.getElementById('speed-circle');
+            
+            if (speedDisplay) speedDisplay.textContent = speedKmh;
+            if (speedCircle) {
+                const offset = CIRCUMFERENCE - (Math.min(speedKmh, MAX_SPEED) / MAX_SPEED) * CIRCUMFERENCE;
+                speedCircle.style.strokeDashoffset = offset;
+            }
+
+            const gpsInd = document.getElementById('gps-indicator');
+            if (gpsInd) gpsInd.className = 'w-3 h-3 rounded-full bg-green-500 glow-blue';
+            
+            const gpsStat = document.getElementById('gps-status');
+            if (gpsStat) gpsStat.textContent = 'OPTIMAL';
+
+            const altVal = document.getElementById('alt-val');
+            if (altVal) altVal.innerHTML = `${c.altitude ? Math.round(c.altitude) : '--'} <span class="text-sm font-normal opacity-40">m</span>`;
+            
+            const accVal = document.getElementById('acc-val');
+            if (accVal) accVal.textContent = `± ${Math.round(c.accuracy)} m`;
+            
+            const latVal = document.getElementById('lat-val');
+            if (latVal) latVal.textContent = c.latitude.toFixed(6);
+            
+            const lonVal = document.getElementById('lon-val');
+            if (lonVal) lonVal.textContent = c.longitude.toFixed(6);
+
+            // Heading
+            const headVal = document.getElementById('head-val');
+            if (headVal && c.heading !== null) {
+                const dirs = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+                headVal.textContent = dirs[Math.round(c.heading / 45) % 8];
+            }
+
+            // Trip Berechnung
+            if (lastCoords) {
+                const d = getDistance(lastCoords.latitude, lastCoords.longitude, c.latitude, c.longitude);
+                if (speedKmh > 3) tripDistance += d;
+                const tripVal = document.getElementById('trip-val');
+                if (tripVal) tripVal.innerHTML = `${tripDistance.toFixed(1)} <span class="text-sm font-normal opacity-40">km</span>`;
+            }
+            lastCoords = c;
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2-lat1) * Math.PI/180;
+            const dLon = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // --- ESP8266 DATEN ABFRAGE ---
+        async function fetchESPData() {
+            try {
+                // Simulation der Sensor-Werte
+                const mockTemp = (22 + Math.random() * 2).toFixed(1);
+                const mockHum = Math.round(45 + Math.random() * 5);
+
+                const tempEl = document.getElementById('esp-temp');
+                const humEl = document.getElementById('esp-hum');
+                const barEl = document.getElementById('temp-bar');
+                const statEl = document.getElementById('esp-status');
+                const indEl = document.getElementById('esp-indicator');
+
+                if (tempEl) tempEl.textContent = mockTemp;
+                if (humEl) humEl.textContent = mockHum;
+                if (barEl) barEl.style.width = `${(mockTemp / 40) * 100}%`;
+                if (statEl) statEl.textContent = 'VERBUNDEN';
+                if (indEl) indEl.className = 'w-3 h-3 rounded-full bg-green-500';
+            } catch (e) {
+                const statEl = document.getElementById('esp-status');
+                const indEl = document.getElementById('esp-indicator');
+                if (statEl) statEl.textContent = 'OFFLINE';
+                if (indEl) indEl.className = 'w-3 h-3 rounded-full bg-red-500';
+            }
+        }
+
+        // --- ALLGEMEIN ---
+        function updateDateTime() {
+            const now = new Date();
+            const timeEl = document.getElementById('current-time');
+            const dateEl = document.getElementById('current-date');
+            if (timeEl) timeEl.textContent = now.toLocaleTimeString('de-DE', { hour12: false });
+            if (dateEl) dateEl.textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        function startApp() {
+            const modal = document.getElementById('modal-gps');
+            if (modal) modal.classList.add('hidden');
+            
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(updateGPS, (err) => console.error(err), {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                });
+            }
+            
+            setInterval(fetchESPData, 5000);
+            fetchESPData();
+        }
+
+        window.onload = () => {
+            // Icons initialisieren
+            initIcons();
+            
+            // Zeit-Update starten
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // GPS Berechtigung prüfen
+            if ("permissions" in navigator) {
+                navigator.permissions.query({name:'geolocation'}).then(res => {
+                    if(res.state !== 'granted') {
+                        const modal = document.getElementById('modal-gps');
+                        if (modal) modal.classList.remove('hidden');
+                    } else {
+                        startApp();
+                    }
+                }).catch(() => {
+                    // Fallback für Browser, die permissions.query für GPS nicht unterstützen
+                    startApp();
+                });
+            } else {
+                startApp();
+            }
+
+            // Screen Wake Lock (verhindert Standby)
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen').catch(() => {});
+            }
+        };
     </script>
 </body>
 </html>
